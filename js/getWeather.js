@@ -26,7 +26,6 @@ var T_WIND_SPEED_IDS = ["t_ws8", "t_ws9", "t_ws10", "t_ws11", "t_ws12", "t_ws1",
 	Y_PREC_IDS = ["y_prec8", "y_prec9", "y_prec10", "y_prec11", "y_prec12", "y_prec1", "y_prec2", "y_prec3", "y_prec4", "y_prec5"];
 	
 
-
 // Get today's weather data from OpenWeather API
 function getWeatherData(){
 	console.log("Getting weather data...");
@@ -35,13 +34,29 @@ function getWeatherData(){
 	var todayMS = Math.floor(Date.now() / 1000) - 100;
 	var today = new Date(0);
 	today.setUTCSeconds(todayMS);
+
+	// Check if time is past midnight UTC
+	// Need to do this or else today might be dislayed as yesterday
+	var curUTChour = today.getUTCHours();
+	if (curUTChour > 22 || curUTChour < 12){
+		console.log("Using yesterday according to UTC time");
+		// Need to convert the date to get today's weather
+		var curDate = today.getUTCDate() - 1;
+		today.setUTCDate(curDate);
+		today.setUTCHours(23);
+		console.log(today.getTime());
+		todayMS = today.getTime() / 1000;
+
+	} else {
+		console.log("Using today according to UTC time");
+	}
+
 	var yesterdayMS = todayMS - 86400;
 	var yesterday = new Date(0);
 	yesterday.setUTCSeconds(yesterdayMS);
-	
+
 	console.log(today.toDateString());
 	console.log(yesterday.toDateString());
-
 	
 	$.ajaxSetup({
     	async: false
@@ -50,20 +65,18 @@ function getWeatherData(){
 	var urlWithAPIkey = "https://api.openweathermap.org/data/2.5/onecall/timemachine?lat=43.646372&lon=-79.465778&dt=" + todayMS + "&appid=" + weatherAPIkey;
 	$.getJSON(urlWithAPIkey, function(data) {
 		// Log data to display for production
-		console.log(data);
+		// console.log(data);
 		applyTodaysData(data);
 		document.getElementById("t_weather").innerHTML = "Weather for today (" + today.toDateString() + "):";
+		
+		var todayDate = (data.hourly[0].dt - data.timezone_offset) * 1000;
 	});
 	
 	var urlWithAPIkey = "https://api.openweathermap.org/data/2.5/onecall/timemachine?lat=43.646372&lon=-79.465778&dt=" + yesterdayMS + "&appid=" + weatherAPIkey;
 	$.getJSON(urlWithAPIkey, function(data) {
 		// Log data to display for production
-		console.log(data);
-		console.log(data.hourly[0].dt);
-		var curDate = (data.hourly[0].dt - data.timezone_offset) * 1000;
-		console.log(curDate);
-		const date = new Date(curDate);
-		console.log(date);
+		// console.log(data);
+		var yesterdayDate = (data.hourly[0].dt - data.timezone_offset) * 1000;
 
 		applyYesterdaysData(data);
 		document.getElementById("y_weather").innerHTML = "Weather for yesterday (" + yesterday.toDateString() + "):";
